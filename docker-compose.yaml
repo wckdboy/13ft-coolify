@@ -51,8 +51,13 @@ services:
 
   web:
     build:
-      context: ./web
-      dockerfile: Dockerfile
+      # Coolify runs `docker compose --project-directory <repo root>`, so a relative
+      # build context resolves against the REPO ROOT, not against this file's folder.
+      # That is the classic "unable to prepare context: path .../web not found" failure.
+      #   files at the repo root                 -> leave the default (.)
+      #   files inside a folder, e.g. 13ft-coolify -> set WEB_BUILD_CONTEXT=13ft-coolify
+      context: ${WEB_BUILD_CONTEXT:-.}
+      dockerfile: web/Dockerfile
     restart: unless-stopped
     environment:
       # Coolify magic variable: registers port 80 of this service as publicly

@@ -6,14 +6,19 @@ LABEL org.opencontainers.image.title="13ft-web" \
       org.opencontainers.image.source="https://github.com/wasi-master/13ft" \
       org.opencontainers.image.licenses=MIT
 
+# Build context is the BUNDLE ROOT, not this folder (see docker-compose.yml):
+#   docker build -f web/Dockerfile .
+#   Coolify: context ${WEB_BUILD_CONTEXT:-.} + dockerfile web/Dockerfile
+# Paths below are therefore prefixed with web/.
+
 # Replace the stock default server with our proxy config.
 # proxy_13ft.inc uses the .inc extension on purpose: nginx only auto-includes
 # *.conf from conf.d, so the shared proxy settings stay explicitly included.
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY proxy_13ft.inc /etc/nginx/conf.d/proxy_13ft.inc
+COPY web/nginx.conf /etc/nginx/conf.d/default.conf
+COPY web/proxy_13ft.inc /etc/nginx/conf.d/proxy_13ft.inc
 
 # Static landing page (single self-contained file).
-COPY site/ /usr/share/nginx/html/
+COPY web/site/ /usr/share/nginx/html/
 
 EXPOSE 80
 

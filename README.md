@@ -43,9 +43,23 @@ self-hosted 12ft.io alternative — with a custom landing page, behind one domai
 2. Coolify → **Projects → + New Resource → Docker Compose** (private or public repo,
    whichever fits).
 3. Settings:
-   - **Base Directory:** `13ft-coolify`
+   - **Base Directory:** the repo directory holding the compose file —
+     `/` if this bundle is at the repo root, or `/13ft-coolify` if you kept the folder.
    - **Docker Compose Location:** `/docker-compose.yml`
-4. **Environment Variables** tab: add anything from `.env.example` you want to
+   - **Preserve Repository During Deployment: ON** (Configuration → General). Without
+     it Coolify does not keep the repository files in the deployment directory, so the
+     `web` build context cannot exist — this is the single most common failure.
+4. **Build context.** Coolify runs compose as
+   `docker compose --project-directory <repo root>`, so a relative `build.context`
+   resolves against the **repo root**, not against the folder holding the compose file.
+   The compose file therefore uses `${WEB_BUILD_CONTEXT:-.}`:
+   - bundle files at the repo root → leave it unset (`.` works)
+   - bundle inside a subfolder like `13ft-coolify/` → set
+     `WEB_BUILD_CONTEXT=13ft-coolify` (Environment Variables tab)
+
+   Symptom if this is wrong: `unable to prepare context: path "/artifacts/<id>/web"
+   not found`. See [Coolify's path rules](#coolifys-path-rules).
+5. **Environment Variables** tab: add anything from `.env.example` you want to
    override. Defaults are already baked into the compose file, so you can deploy with
    none. Common ones:
 
@@ -55,19 +69,37 @@ self-hosted 12ft.io alternative — with a custom landing page, behind one domai
    | `TZ` | `UTC` | Container timezone |
    | `GUNICORN_THREADS` | `8` | Concurrent fetches inside the single worker |
    | `GUNICORN_TIMEOUT` | `180` | Gunicorn request timeout in seconds |
+   | `WEB_BUILD_CONTEXT` | `.` | Build context for `web`, relative to the repo root |
 
-5. **Domain:** set the FQDN on the **`web`** service, **port 80**. The compose file
+6. **Domain:** set the FQDN on the **`web`** service, **port 80**. The compose file
    already declares Coolify's `SERVICE_FQDN_WEB_80` magic variable, so port 80 will be
    listed for that service — type your domain (`13ft.example.com`), pick `https`, and
    Coolify provisions the certificate. Do **not** add a domain to `app`; it has no
    published port by design.
-6. **Deploy.** Coolify builds `web`, pulls the 13ft image, waits for the healthchecks,
+7. **Deploy.** Coolify builds `web`, pulls the 13ft image, waits for the healthchecks,
    then routes the domain. First build is quick (just nginx + one HTML file).
+
+### Coolify's path rules
+
+Worth knowing before you debug a build failure:
+
+- Coolify copies your compose file to `<deployment dir>/docker-compose.yaml` and runs
+  compose with **`--project-directory <repo root>`**. Relative paths — `build.context`
+  above all — are resolved against that root, not against the compose file's location.
+  Compose files in subdirectories are the classic source of
+  `unable to prepare context: path ... not found` ([coollabsio/coolify#5182](https://github.com/coollabsio/coolify/issues/5182)).
+- Repository files are **not** present in the deployment directory unless
+  **Preserve Repository During Deployment** is enabled ([coollabsio/coolify#1996](https://github.com/coollabsio/coolify/issues/1996)).
+  If you don't want to depend on that at all, use the image-only
+  `docker-compose.simple.yml`: no build step, no repo files needed.
+- `image:` services are unaffected by all of this — they just pull.
 
 ### Alternative: no landing page
 
 If you want the stock 13ft interface only, create a **Docker Compose** resource from
-`docker-compose.simple.yml` and give `app` a domain on port 5000.
+`docker-compose.simple.yml` and give `app` a domain on port 5000. This variant has no
+build step, so none of the path rules above apply — useful as a fallback if builds
+misbehave on your server.
 
 ## Local test
 
@@ -134,6 +166,7 @@ saw the job, and the progress page breaks. Need more throughput? Raise
 
 | Symptom | Cause / fix |
 | --- | --- |
+| `unable to prepare context: path "/artifacts/<id>/web" not found` | Coolify resolved `build.context` against the **repo root**. Enable **Preserve Repository During Deployment**, keep the compose file at the repo root, and set `WEB_BUILD_CONTEXT` to the folder holding this bundle (`13ft-coolify`) if it isn't at the root. |
 | `502` from the proxy | `app` is unhealthy or still starting. Check its logs; healthcheck requires `GET /` on port 5000. |
 | Progress page spins, then "Lost the connection" | `/status` stream is being buffered. The compose config disables buffering; if you added your own proxy in front, set `proxy_buffering off` for that path. |
 | Every fetch fails with an anti-bot message | The target site blocks crawler user-agents and no archive snapshot exists yet (common for very recent Medium posts). Try another source. |
