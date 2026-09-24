@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="13ft-landing" content="1">
+<meta name="description" content="13ft — a self-hosted 12ft.io alternative. Paste a link and read the article without paywalls or ads.">
+<meta name="robots" content="noindex, nofollow">
+<title>13ft — read past the paywall</title>
+<link rel="icon" href="/favicon.ico" type="image/png">
+<style>
+  :root{
+    --bg:#0b0c0e;
+    --panel:#121417;
+    --line:#24282e;
+    --line-soft:#1b1f24;
+    --fg:#eceae7;
+    --fg-dim:#9aa0a6;
+    --fg-faint:#6b7178;
+    --accent:#c8ff4d;
+    --accent-ink:#0b0c0e;
+    --danger:#ff7a5c;
+    --radius:12px;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Inter,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f7f6f3;
+      --panel:#ffffff;
+      --line:#dcd8d0;
+      --line-soft:#e9e6df;
+      --fg:#15171a;
+      --fg-dim:#5c6268;
+      --fg-faint:#8a9096;
+      --accent:#3f6b00;
+      --accent-ink:#f7f6f3;
+      --danger:#b03412;
+    }
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--fg);
+    font-family:var(--sans);
+    font-size:16px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(1200px 600px at 50% -200px, color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%);
+    background-repeat:no-repeat;
+  }
+  .wrap{width:100%;max-width:760px;margin:0 auto;padding:28px 20px 64px}
+  a{color:var(--fg);text-decoration-color:var(--line);text-underline-offset:3px}
+  a:hover{text-decoration-color:var(--accent)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:56px}
+  .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+  .mark{
+    display:block;width:20px;height:34px;flex:0 0 auto;
+    border-left:2px solid var(--accent);border-right:2px solid var(--accent);
+    background-image:repeating-linear-gradient(to bottom, var(--accent) 0 1.4px, transparent 1.4px 2.615px);
+  }
+  .wordmark{font-family:var(--mono);font-weight:600;font-size:19px;letter-spacing:-.02em}
+  .wordmark span{color:var(--fg-faint);font-weight:400}
+  .top nav{display:flex;gap:18px;align-items:center;font-size:13.5px;color:var(--fg-dim)}
+  .top nav a{color:var(--fg-dim)}
+  .badge{
+    font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--fg-faint);border:1px solid var(--line);border-radius:999px;padding:3px 9px;
+  }
+
+  h1{
+    font-size:clamp(30px,6vw,46px);line-height:1.08;letter-spacing:-.03em;
+    margin:0 0 14px;font-weight:600;
+  }
+  h1 em{font-style:normal;color:var(--accent)}
+  .lede{margin:0 0 30px;color:var(--fg-dim);max-width:56ch;font-size:17px}
+
+  form.grab{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+  .field{
+    position:relative;flex:1 1 320px;display:flex;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    transition:border-color .15s ease;
+  }
+  .field:focus-within{border-color:var(--accent)}
+  .field input{
+    flex:1;min-width:0;background:transparent;border:0;color:var(--fg);
+    font-family:var(--mono);font-size:14.5px;padding:15px 14px;border-radius:var(--radius);
+  }
+  .field input::placeholder{color:var(--fg-faint)}
+  .field input:focus{outline:none}
+  button{
+    font-family:var(--sans);font-size:15px;font-weight:600;letter-spacing:-.01em;
+    background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent);
+    border-radius:var(--radius);padding:15px 22px;cursor:pointer;white-space:nowrap;
+    transition:opacity .15s ease,transform .06s ease;
+  }
+  button:hover{opacity:.9}
+  button:active{transform:translateY(1px)}
+  button.ghost{background:transparent;color:var(--fg);border-color:var(--line);font-weight:500}
+  button.ghost:hover{border-color:var(--accent);opacity:1}
+  .hint{
+    display:flex;gap:14px;flex-wrap:wrap;margin:12px 2px 0;
+    font-size:12.5px;color:var(--fg-faint);font-family:var(--mono);
+  }
+  kbd{
+    font-family:var(--mono);font-size:11.5px;border:1px solid var(--line);
+    border-radius:4px;padding:1px 5px;color:var(--fg-dim);background:var(--panel);
+  }
+
+  section.panel{
+    margin-top:28px;border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--panel);padding:18px 18px 16px;
+  }
+  section.panel[hidden]{display:none}
+  .panel h2{
+    margin:0 0 4px;font-size:13px;font-family:var(--mono);font-weight:600;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--fg-dim);
+  }
+  .panel .sub{margin:0 0 14px;font-size:13.5px;color:var(--fg-faint);word-break:break-all}
+  ol.steps{list-style:none;margin:0;padding:0;font-family:var(--mono);font-size:13.5px}
+  ol.steps li{
+    display:flex;gap:10px;align-items:baseline;padding:5px 0;color:var(--fg-dim);
+    border-bottom:1px dashed var(--line-soft);
+  }
+  ol.steps li:last-child{border-bottom:0}
+  ol.steps li .dot{color:var(--accent);flex:0 0 auto}
+  ol.steps li.active{color:var(--fg)}
+  ol.steps li.active .dot{animation:blink 1s steps(2,start) infinite}
+  @keyframes blink{50%{opacity:.25}}
+  @media (prefers-reduced-motion: reduce){
+    ol.steps li.active .dot{animation:none}
+    button:active{transform:none}
+  }
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+  .timer{font-family:var(--mono);font-size:13px;color:var(--fg-faint)}
+  .error-text{margin:0 0 14px;color:var(--danger);font-size:14.5px;white-space:pre-wrap}
+
+  details{margin-top:34px;border-top:1px solid var(--line);padding-top:18px}
+  details summary{cursor:pointer;font-size:14px;color:var(--fg-dim);font-family:var(--mono)}
+  details summary:hover{color:var(--fg)}
+  details ul{margin:14px 0 0;padding-left:18px;color:var(--fg-dim);font-size:14px}
+  details li{margin-bottom:7px}
+
+  .tools{margin-top:34px;border-top:1px solid var(--line);padding-top:18px;display:grid;gap:18px}
+  .tools h3{margin:0 0 6px;font-size:13px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--fg-dim)}
+  .tools p{margin:0;color:var(--fg-faint);font-size:13.5px}
+  .bm{
+    display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:9px 14px;
+    border:1px dashed var(--accent);border-radius:8px;color:var(--accent);
+    font-family:var(--mono);font-size:13px;text-decoration:none;cursor:grab;
+  }
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .chips button{
+    background:transparent;color:var(--fg-dim);border:1px solid var(--line);
+    font-family:var(--mono);font-size:12px;font-weight:400;padding:6px 10px;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .chips button:hover{border-color:var(--accent);color:var(--fg)}
+  code.bmcode{
+    display:block;margin-top:10px;padding:10px 12px;border:1px solid var(--line);
+    border-radius:8px;background:var(--bg);color:var(--fg-dim);
+    font-family:var(--mono);font-size:11.5px;overflow-x:auto;white-space:pre;
+  }
+  footer{margin-top:44px;border-top:1px solid var(--line);padding-top:18px;color:var(--fg-faint);font-size:12.5px}
+  footer p{margin:0 0 6px}
+  footer .mono{font-family:var(--mono)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <a class="brand" href="/">
+      <span class="mark" aria-hidden="true"></span>
+      <span class="wordmark">13ft <span>/ 13 feet ladder</span></span>
+    </a>
+    <nav>
+      <span class="badge">self-hosted</span>
+      <a href="https://github.com/wasi-master/13ft" rel="noopener noreferrer" target="_blank">Upstream&nbsp;↗</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Read past the <em>paywall</em>.</h1>
+    <p class="lede">
+      Paste an article link. 13ft fetches the copy that search engines are served —
+      no ads, no walls, no account. If the site blocks crawlers, it falls back to
+      archive snapshots automatically.
+    </p>
+
+    <form class="grab" id="form" novalidate>
+      <label class="sr" for="url">Article URL</label>
+      <div class="field">
+        <input id="url" name="url" type="text" inputmode="url" autocomplete="off"
+               autocapitalize="off" spellcheck="false"
+               placeholder="https://example.com/some-paywalled-article"
+               aria-describedby="url-error">
+      </div>
+      <button type="submit" id="submit">Fetch article</button>
+    </form>
+    <p class="hint" id="url-error" role="status">
+      <span><kbd>Enter</kbd> fetch</span>
+      <span><kbd>Esc</kbd> clear</span>
+      <span>results are cached ~5 min</span>
+    </p>
+
+    <!-- Live progress (fed by the app's /status SSE stream) -->
+    <section class="panel" id="status" hidden aria-live="polite">
+      <h2>Working</h2>
+      <p class="sub" id="status-target"></p>
+      <ol class="steps" id="steps"></ol>
+      <div class="row">
+        <span class="timer" id="timer">0.0s</span>
+        <button type="button" class="ghost" id="cancel">Cancel</button>
+        <button type="button" class="ghost" id="direct" hidden>Open direct link</button>
+      </div>
+    </section>
+
+    <!-- Error state -->
+    <section class="panel" id="failure" hidden role="alert">
+      <h2>Couldn't fetch that</h2>
+      <p class="error-text" id="failure-text"></p>
+      <div class="row">
+        <button type="button" class="ghost" id="retry">Try another URL</button>
+        <button type="button" class="ghost" id="still-open" hidden>Open anyway</button>
+      </div>
+    </section>
+
+    <details>
+      <summary>How this works</summary>
+      <ul>
+        <li><strong>Googlebot identity.</strong> The server requests the page with a crawler user-agent, so it gets the fully rendered article that search engines index.</li>
+        <li><strong>Fallback chain.</strong> If the site serves an anti-bot challenge, 13ft tries Freedium (Medium), archive.org and archive.today before giving up.</li>
+        <li><strong>Cleanup.</strong> Ads, overlays, frame-busting scripts and tracker scaffolding are stripped before the page reaches you.</li>
+        <li><strong>Nothing is stored.</strong> Rendered pages live in server memory for about five minutes; your link history below stays in this browser only.</li>
+      </ul>
+      <p style="margin:14px 0 0;color:var(--fg-faint);font-size:13.5px">
+        If you read something worth keeping, subscribe to the publication. This is for the
+        one-off article, not for replacing the people who wrote it.
+      </p>
+    </details>
+
+    <!-- Bookmarklet + history -->
+    <div class="tools">
+      <div>
+        <h3>Bookmarklet</h3>
+        <p>Drag this to your bookmarks bar — it opens whatever page you're on through this instance.</p>
+        <a class="bm" id="bm" href="#" draggable="true">13ft this page</a>
+        <code class="bmcode" id="bm-code"></code>
+        <div class="row"><button type="button" class="ghost" id="copy-bm">Copy bookmarklet</button></div>
+      </div>
+      <div id="recent-wrap" hidden>
+        <h3>Recent</h3>
+        <p>Kept in this browser only.</p>
+        <div class="chips" id="recent"></div>
+        <div class="row"><button type="button" class="ghost" id="clear-recent">Clear history</button></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p class="mono">13ft — MIT, upstream: <a href="https://github.com/wasi-master/13ft" rel="noopener noreferrer" target="_blank">wasi-master/13ft</a></p>
+    <p>Self-hosted instance. UI language follows the server's <span class="mono">LOCALE</span>: en · de · fr · ko.</p>
+  </footer>
+</div>
+
+<noscript>
+  <p style="padding:0 20px;color:#9aa0a6">
+    JavaScript is off. Use the direct form instead:
+    <a href="/">open the built-in interface</a>, or append your URL to this
+    instance's address, e.g. <code>/https://example.com/article</code>.
+  </p>
+</noscript>
+
+<script>
+(function () {
+  "use strict";
+
+  var els = {
+    form: document.getElementById("form"),
+    input: document.getElementById("url"),
+    error: document.getElementById("url-error"),
+    status: document.getElementById("status"),
+    target: document.getElementById("status-target"),
+    steps: document.getElementById("steps"),
+    timer: document.getElementById("timer"),
+    cancel: document.getElementById("cancel"),
+    direct: document.getElementById("direct"),
+    failure: document.getElementById("failure"),
+    failureText: document.getElementById("failure-text"),
+    retry: document.getElementById("retry"),
+    stillOpen: document.getElementById("still-open"),
+    bm: document.getElementById("bm"),
+    bmCode: document.getElementById("bm-code"),
+    copyBm: document.getElementById("copy-bm"),
+    recentWrap: document.getElementById("recent-wrap"),
+    recent: document.getElementById("recent"),
+    clearRecent: document.getElementById("clear-recent")
+  };
+
+  // Step keys emitted by /status (see app/portable.py set_step calls).
+  var LABELS = {
+    queued: "Queued",
+    connect: "Connecting to the website…",
+    fetch: "Downloading page content…",
+    detect: "Checking for anti-bot challenges…",
+    fallback_freedium: "Trying Freedium (Medium bypass)…",
+    fallback_org: "Trying archive.org snapshot…",
+    fallback_ph: "Trying archive.today snapshot…",
+    process: "Processing the article…",
+    cleanup: "Cleaning up and preparing the view…",
+    done: "Done"
+  };
+
+  var HISTORY_KEY = "13ft.history.v1";
+  var HISTORY_MAX = 6;
+
+  var es = null;        // active EventSource
+  var ticker = null;    // elapsed timer
+  var started = 0;      // ms timestamp
+  var lastStep = null;
+  var lastUrl = null;
+
+  /* ---------- url handling ---------- */
+
+  function normalize(raw) {
+    var s = (raw || "").trim();
+    if (!s) return null;
+    // Reject anything with a scheme that isn't http(s) — blocks javascript:, data:.
+    if (/^[a-z][a-z0-9+.-]*:/i.test(s) && !/^https?:/i.test(s)) return null;
+    if (!/^https?:\/\//i.test(s)) s = "https://" + s;
+    var u;
+    try { u = new URL(s); } catch (e) { return null; }
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    if (!u.hostname || u.hostname.indexOf(".") === -1) return null;
+    return u.href;
+  }
+
+  function bypassPath(url) {
+    // Same shape the app expects: /<full url>
+    return "/" + encodeURIComponent(url);
+  }
+
+  /* ---------- ui helpers ---------- */
+
+  function show(el, on) { el.hidden = !on; }
+
+  function setError(message) {
+    els.error.textContent = message || "";
+    els.error.style.color = message ? "var(--danger)" : "";
+  }
+
+  function resetPanels() {
+    show(els.status, false);
+    show(els.failure, false);
+    els.steps.textContent = "";
+    els.failureText.textContent = "";
+    show(els.stillOpen, false);
+    lastStep = null;
+  }
+
+  function addStep(key) {
+    if (!key || key === lastStep) return;
+    var li = document.createElement("li");
+    var dot = document.createElement("span");
+    dot.className = "dot";
+    dot.textContent = "▸";
+    li.appendChild(dot);
+    li.appendChild(document.createTextNode(LABELS[key] || key));
+    var active = els.steps.querySelector("li.active");
+    if (active) active.classList.remove("active");
+    li.classList.add("active");
+    els.steps.appendChild(li);
+    els.steps.scrollTop = els.steps.scrollHeight;
+    lastStep = key;
+  }
+
+  function stopStream() {
+    if (es) { es.close(); es = null; }
+    if (ticker) { clearInterval(ticker); ticker = null; }
+  }
+
+  function startTimer() {
+    started = Date.now();
+    els.timer.textContent = "0.0s";
+    ticker = setInterval(function () {
+      els.timer.textContent = ((Date.now() - started) / 1000).toFixed(1) + "s";
+    }, 100);
+  }
+
+  /* ---------- history ---------- */
+
+  function readHistory() {
+    try {
+      var raw = localStorage.getItem(HISTORY_KEY);
+      var list = raw ? JSON.parse(raw) : [];
+      return Array.isArray(list) ? list.filter(function (v) { return typeof v === "string"; }) : [];
+    } catch (e) { return []; }
+  }
+
+  function remember(url) {
+    try {
+      var list = readHistory().filter(function (v) { return v !== url; });
+      list.unshift(url);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, HISTORY_MAX)));
+    } catch (e) { /* private mode: ignore */ }
+    renderHistory();
+  }
+
+  function renderHistory() {
+    var list = readHistory();
+    els.recent.textContent = "";
+    show(els.recentWrap, list.length > 0);
+    list.forEach(function (url) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = url;
+      b.title = url;
+      b.addEventListener("click", function () {
+        els.input.value = url;
+        submitUrl(url);
+      });
+      els.recent.appendChild(b);
+    });
+  }
+
+  /* ---------- fetch flow ---------- */
+
+  function submitUrl(url) {
+    setError("");
+    resetPanels();
+    lastUrl = url;
+    show(els.status, true);
+    els.target.textContent = url;
+    startTimer();
+    addStep("queued");
+    remember(url);
+    els.input.blur();
+
+    if (typeof window.EventSource !== "function") {
+      // No SSE support: fall back to the synchronous path route.
+      window.location.assign(bypassPath(url));
+      return;
+    }
+
+    var settled = false;
+    es = new EventSource("/status?url=" + encodeURIComponent(url));
+
+    es.addEventListener("step", function (ev) {
+      var data;
+      try { data = JSON.parse(ev.data); } catch (e) { return; }
+      if (!data || typeof data.step !== "string") return;
+      if (data.step === "done") {
+        settled = true;
+        addStep("done");
+        stopStream();
+        var target = (typeof data.redirect === "string" &&
+                      data.redirect.charAt(0) === "/" &&
+                      data.redirect.charAt(1) !== "/") ? data.redirect : bypassPath(url);
+        window.setTimeout(function () { window.location.assign(target); }, 250);
+        return;
+      }
+      addStep(data.step);
+    });
+
+    es.addEventListener("error_msg", function (ev) {
+      settled = true;
+      stopStream();
+      var message = "The server could not fetch that page.";
+      try {
+        var data = JSON.parse(ev.data);
+        if (data && data.message) message = data.message;
+      } catch (e) { /* keep default */ }
+      fail(message, false);
+    });
+
+    es.addEventListener("error", function () {
+      if (settled) return;              // normal close after "done"
+      settled = true;
+      stopStream();
+      fail("Lost the connection to the server before the page was ready. The fetch may still be running — try opening the direct link.", true);
+    });
+  }
+
+  function fail(message, offerDirect) {
+    stopStream();
+    show(els.status, false);
+    els.failureText.textContent = message;
+    show(els.stillOpen, !!offerDirect && !!lastUrl);
+    show(els.failure, true);
+  }
+
+  /* ---------- events ---------- */
+
+  els.form.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var url = normalize(els.input.value);
+    if (!url) {
+      setError("That doesn't look like a web address. Try something like https://example.com/article");
+      els.input.focus();
+      return;
+    }
+    els.input.value = url;
+    submitUrl(url);
+  });
+
+  els.input.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape") {
+      els.input.value = "";
+      setError("");
+      resetPanels();
+    }
+  });
+
+  els.cancel.addEventListener("click", function () {
+    stopStream();
+    show(els.status, false);
+    els.input.focus();
+  });
+
+  els.direct.addEventListener("click", function () {
+    stopStream();
+    if (lastUrl) window.location.assign(bypassPath(lastUrl));
+  });
+
+  els.stillOpen.addEventListener("click", function () {
+    if (lastUrl) window.location.assign(bypassPath(lastUrl));
+  });
+
+  els.retry.addEventListener("click", function () {
+    resetPanels();
+    els.input.focus();
+    els.input.select();
+  });
+
+  els.clearRecent.addEventListener("click", function () {
+    try { localStorage.removeItem(HISTORY_KEY); } catch (e) { /* ignore */ }
+    renderHistory();
+  });
+
+  /* ---------- bookmarklet ---------- */
+
+  function bookmarklet() {
+    var origin = window.location.origin + "/";
+    return "javascript:(function(){window.location.href=" +
+           JSON.stringify(origin) +
+           "+encodeURIComponent(window.location.href);})()";
+  }
+
+  var bmCode = bookmarklet();
+  els.bm.setAttribute("href", bmCode);
+  els.bmCode.textContent = bmCode;
+
+  els.copyBm.addEventListener("click", function () {
+    var done = function () {
+      var old = els.copyBm.textContent;
+      els.copyBm.textContent = "Copied";
+      window.setTimeout(function () { els.copyBm.textContent = old; }, 1200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(bmCode).then(done, function () { selectCode(); });
+    } else {
+      selectCode();
+    }
+  });
+
+  function selectCode() {
+    var range = document.createRange();
+    range.selectNodeContents(els.bmCode);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  /* ---------- deep link: /?url=... or #... ---------- */
+
+  var params = new URLSearchParams(window.location.search);
+  var preset = normalize(params.get("url") || "");
+  els.input.value = preset || "";
+  renderHistory();
+  if (preset) submitUrl(preset);
+})();
+</script>
+</body>
+</html>

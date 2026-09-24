@@ -1,0 +1,80 @@
+# 13ft (13 Feet Ladder) — Coolify-ready stack
+# Upstream: https://github.com/wasi-master/13ft (MIT)
+#
+#   app -> upstream image: Flask + gunicorn on :5000, internal only.
+#   web -> nginx: serves the custom landing page at "/" and reverse-proxies
+#          everything else to `app`. This is the only service that needs a
+#          public domain in Coolify.
+#
+# Coolify: New Resource -> Docker Compose (Git repo), then set the domain on
+# service `web` port 80 and deploy. Full walkthrough in README.md.
+
+name: 13ft
+
+services:
+  app:
+    image: ghcr.io/wasi-master/13ft:latest
+    restart: unless-stopped
+    environment:
+      # upstream app/gunicorn.conf.py does: bind = f"0.0.0.0:{PORT or 5000}"
+      PORT: "5000"
+      # en | de | fr | ko — see app/locales in the upstream repo
+      LOCALE: ${LOCALE:-en}
+      TZ: ${TZ:-UTC}
+      # The image ships gunicorn defaults: 1 *sync* worker and a 30s timeout.
+      # A single article fetch can take up to ~30s (the app's own HTTP timeout),
+      # so the default worker gets recycled mid-request and the page fails.
+      # --threads gives concurrency inside one process; --timeout stops gunicorn
+      # from killing slow fetches.
+      # KEEP --workers 1: job state and the page cache live in process memory,
+      # so extra workers break the live progress page (/status) and the cache.
+      GUNICORN_CMD_ARGS: >-
+        --worker-class gthread
+        --workers 1
+        --threads ${GUNICORN_THREADS:-8}
+        --timeout ${GUNICORN_TIMEOUT:-180}
+        --graceful-timeout 30
+        --access-logfile -
+        --error-logfile -
+    expose:
+      - "5000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:5000/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - edge
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # Coolify magic variable: registers port 80 of this service as publicly
+      # routable and surfaces a domain field for it in the UI.
+      - SERVICE_FQDN_WEB_80
+      - TZ=${TZ:-UTC}
+    expose:
+      - "80"
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - edge
+
+networks:
+  edge:
+    driver: bridge
